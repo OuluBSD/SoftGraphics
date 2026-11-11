@@ -1,0 +1,13 @@
+description "SoftGraphics Automated Unit Tests";
+
+uses
+	Core,
+	Geometry,
+	ByteVM/Python,
+	SoftGraphics;
+
+file
+	SoftGraphicsTests.cpp;
+
+mainconfig
+	"" = "";
