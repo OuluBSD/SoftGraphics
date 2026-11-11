@@ -11,8 +11,8 @@ using ::Upp::PyIR;
 using ::Upp::Vector;
 
 ShaderInterface ShaderTranspiler::ExtractInterface(PyLambda* pyLambda) {
-	ShaderInterface interface;
-	if (!pyLambda) return interface;
+	ShaderInterface iface;
+	if (!pyLambda) return iface;
 
 	for (int i = 0; i < pyLambda->annotations.GetCount(); ++i) {
 		const String& name = pyLambda->annotations.GetKey(i);
@@ -21,10 +21,10 @@ ShaderInterface ShaderTranspiler::ExtractInterface(PyLambda* pyLambda) {
 		ShaderParameter param;
 		param.name = name;
 		param.type = ParseTypeAnnotation(annValue);
-		interface.uniforms.Add(std::move(param));
+		iface.uniforms.Add(std::move(param));
 	}
 
-	return interface;
+	return iface;
 }
 
 TypeAnnotation ShaderTranspiler::ParseTypeAnnotation(const PyValue& value) {
@@ -58,10 +58,10 @@ String GLSLTranspiler::MapType(const TypeAnnotation& type) {
 	return "void";
 }
 
-String GLSLTranspiler::GenerateLayout(const ShaderInterface& interface) {
+String GLSLTranspiler::GenerateLayout(const ShaderInterface& iface) {
     String code;
     code << "layout(std140, set = 0, binding = 0) uniform Uniforms {\n";
-    for (auto& u : interface.uniforms) {
+    for (auto& u : iface.uniforms) {
         if (u.type.name == "Uniforms" || u.type.name == "struct" || u.type.name == "TypedDict") {
             // Expand TypedDict/struct fields - would need to parse the actual type definition
             // For now, generate placeholder
@@ -83,19 +83,19 @@ String GLSLTranspiler::GenerateLayout(const ShaderInterface& interface) {
     code << "};\n\n";
     
     // Generate varying inputs/outputs
-    if (interface.inputs.GetCount() > 0) {
+    if (iface.inputs.GetCount() > 0) {
         code << "// Inputs (vertex attributes / varyings in)\n";
-        for (int i = 0; i < interface.inputs.GetCount(); ++i) {
-            auto& inp = interface.inputs[i];
+        for (int i = 0; i < iface.inputs.GetCount(); ++i) {
+            auto& inp = iface.inputs[i];
             code << "layout(location = " << i << ") in " << MapType(inp.type) << " " << inp.name << ";\n";
         }
         code << "\n";
     }
     
-    if (interface.outputs.GetCount() > 0) {
+    if (iface.outputs.GetCount() > 0) {
         code << "// Outputs (varyings out / fragment outputs)\n";
-        for (int i = 0; i < interface.outputs.GetCount(); ++i) {
-            auto& out = interface.outputs[i];
+        for (int i = 0; i < iface.outputs.GetCount(); ++i) {
+            auto& out = iface.outputs[i];
             code << "layout(location = " << i << ") out " << MapType(out.type) << " " << out.name << ";\n";
         }
         code << "\n";
@@ -124,7 +124,7 @@ String GLSLTranspiler::MapOpToGLSL(int code, const String& a, const String& b) {
     }
 }
 
-String GLSLTranspiler::EmitGLSL(PyLambda* pyLambda, const ShaderInterface& interface) {
+String GLSLTranspiler::EmitGLSL(PyLambda* pyLambda, const ShaderInterface& iface) {
 	if (!pyLambda) return "// No shader function\n";
 	
 	const Vector<PyIR>& ir = pyLambda->ir;
@@ -157,12 +157,12 @@ String GLSLTranspiler::EmitGLSL(PyLambda* pyLambda, const ShaderInterface& inter
 		String argName = pyLambda->arg[i];
 		// Find type from annotations
 		String typeName = "float";
-		for (auto& p : interface.inputs) {
+		for (auto& p : iface.inputs) {
 			if (p.name == argName) {
 				typeName = MapType(p.type);
 				break;
 			}
-			for (auto& p2 : interface.uniforms) {
+			for (auto& p2 : iface.uniforms) {
 				if (p2.name == argName) {
 					typeName = MapType(p2.type);
 					break;
@@ -350,12 +350,12 @@ case ::Upp::PY_LOAD_CONST: {
 	return code;
 }
 
-String GLSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& interface) {
+String GLSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& iface) {
 	if (!pyLambda) return "// No shader\n";
 	
 	String code;
 	code << "#version 450\n";
-	code << GenerateLayout(interface);
+	code << GenerateLayout(iface);
 	code << "\n";
 	
 	// Extract entry point function name
@@ -363,9 +363,9 @@ String GLSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& inte
 	// pyLambda->name might have the function name
 	
 	// For vertex shader
-	if (interface.inputs.GetCount() > 0 && interface.outputs.GetCount() > 0) {
+	if (iface.inputs.GetCount() > 0 && iface.outputs.GetCount() > 0) {
 		code << "void main() {\n";
-		code << EmitGLSL(pyLambda, interface);
+		code << EmitGLSL(pyLambda, iface);
 		code << "}\n";
 	}
 	
@@ -418,10 +418,10 @@ String SPIRVTranspiler::MapType(const TypeAnnotation& type) {
     return "void";
 }
 
-String SPIRVTranspiler::GenerateLayout(const ShaderInterface& interface) {
+String SPIRVTranspiler::GenerateLayout(const ShaderInterface& iface) {
     String code;
     int binding = 0;
-    for (auto& u : interface.uniforms) {
+    for (auto& u : iface.uniforms) {
         code << "OpDecorate %u" << binding << " DescriptorSet " << u.set << "\n";
         code << "OpDecorate %u" << binding << " Binding " << binding << "\n";
         binding++;
@@ -429,7 +429,7 @@ String SPIRVTranspiler::GenerateLayout(const ShaderInterface& interface) {
     return code;
 }
 
-String SPIRVTranspiler::EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& interface) {
+String SPIRVTranspiler::EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "; No shader function\n";
     
     SpvBuilder b;
@@ -485,8 +485,8 @@ String SPIRVTranspiler::EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& int
     // Uniform block - simplified
     // For each uniform, create a variable
     int varBase = b.NewId();
-    for (int i = 0; i < interface.uniforms.GetCount(); ++i) {
-        auto& u = interface.uniforms[i];
+    for (int i = 0; i < iface.uniforms.GetCount(); ++i) {
+        auto& u = iface.uniforms[i];
         int typeId = 0;
         String tn = u.type.name;
         if (tn == "Mat4") typeId = mat4Type;
@@ -623,12 +623,12 @@ String SPIRVTranspiler::EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& int
     return b.code;
 }
 
-String SPIRVTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& interface) {
+String SPIRVTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& iface) {
     String code = "; SPIR-V\n";
     code << "OpCapability Shader\n";
     code << "OpMemoryModel Logical GLSL450\n";
-    code << GenerateLayout(interface);
-    code << EmitSPIRV(pyLambda, interface);
+    code << GenerateLayout(iface);
+    code << EmitSPIRV(pyLambda, iface);
     return code;
 }
 
@@ -653,10 +653,10 @@ String MSLTranspiler::MapType(const TypeAnnotation& type) {
     return "void";
 }
 
-String MSLTranspiler::GenerateLayout(const ShaderInterface& interface) {
+String MSLTranspiler::GenerateLayout(const ShaderInterface& iface) {
     String code;
     code << "struct Uniforms {\n";
-    for (auto& u : interface.uniforms) {
+    for (auto& u : iface.uniforms) {
         if (u.type.name == "Uniforms" || u.type.name == "struct" || u.type.name == "TypedDict") {
             code << "    // Uniform block: " << u.name << " (type: " << u.type.name << ")\n";
             code << "    float4x4 model;\n";
@@ -696,7 +696,7 @@ String MSLTranspiler::MapOpToMSL(int code, const String& a, const String& b) {
     }
 }
 
-String MSLTranspiler::EmitMSL(PyLambda* pyLambda, const ShaderInterface& interface) {
+String MSLTranspiler::EmitMSL(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader function\n";
     
     const Vector<PyIR>& ir = pyLambda->ir;
@@ -722,9 +722,9 @@ String MSLTranspiler::EmitMSL(PyLambda* pyLambda, const ShaderInterface& interfa
     for (int i = 0; i < pyLambda->arg.GetCount(); ++i) {
         String argName = pyLambda->arg[i];
         String typeName = "float";
-        for (auto& p : interface.inputs) {
+        for (auto& p : iface.inputs) {
             if (p.name == argName) { typeName = MapType(p.type); break; }
-            for (auto& p2 : interface.uniforms) {
+            for (auto& p2 : iface.uniforms) {
                 if (p2.name == argName) { typeName = MapType(p2.type); break; }
             }
         }
@@ -862,39 +862,39 @@ String MSLTranspiler::EmitMSL(PyLambda* pyLambda, const ShaderInterface& interfa
     return code;
 }
 
-String MSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& interface) {
+String MSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader\n";
     
     String code;
     code << "// Metal Shading Language\n";
     code << "#include <metal_stdlib>\nusing namespace metal;\n\n";
-    code << GenerateLayout(interface);
+    code << GenerateLayout(iface);
     code << "\n";
     
     // Determine shader stage from interface
-    bool isVertex = interface.inputs.GetCount() > 0 && interface.outputs.GetCount() > 0;
+    bool isVertex = iface.inputs.GetCount() > 0 && iface.outputs.GetCount() > 0;
     
     if (isVertex) {
         code << "vertex float4 main(\n";
-        for (int i = 0; i < interface.inputs.GetCount(); ++i) {
-            auto& inp = interface.inputs[i];
+        for (int i = 0; i < iface.inputs.GetCount(); ++i) {
+            auto& inp = iface.inputs[i];
             code << "    " << MapType(inp.type) << " " << inp.name << " [[attribute(" << i << ")]]";
-            if (i < interface.inputs.GetCount() - 1) code << ",\n";
+            if (i < iface.inputs.GetCount() - 1) code << ",\n";
         }
         code << ", constant Uniforms& uniforms [[buffer(0)]]\n";
         code << ") {\n";
-        code << EmitMSL(pyLambda, interface);
+        code << EmitMSL(pyLambda, iface);
         code << "}\n";
     } else {
         code << "fragment float4 main(\n";
-        for (int i = 0; i < interface.inputs.GetCount(); ++i) {
-            auto& inp = interface.inputs[i];
+        for (int i = 0; i < iface.inputs.GetCount(); ++i) {
+            auto& inp = iface.inputs[i];
             code << "    " << MapType(inp.type) << " " << inp.name << " [[stage_in]]";
-            if (i < interface.inputs.GetCount() - 1) code << ",\n";
+            if (i < iface.inputs.GetCount() - 1) code << ",\n";
         }
         code << ", constant Uniforms& uniforms [[buffer(0)]]\n";
         code << ") {\n";
-        code << EmitMSL(pyLambda, interface);
+        code << EmitMSL(pyLambda, iface);
         code << "}\n";
     }
     
@@ -922,10 +922,10 @@ String DXILTranspiler::MapType(const TypeAnnotation& type) {
     return "void";
 }
 
-String DXILTranspiler::GenerateLayout(const ShaderInterface& interface) {
+String DXILTranspiler::GenerateLayout(const ShaderInterface& iface) {
     String code;
     code << "cbuffer Uniforms : register(b0) {\n";
-    for (auto& u : interface.uniforms) {
+    for (auto& u : iface.uniforms) {
         if (u.type.name == "Uniforms" || u.type.name == "struct" || u.type.name == "TypedDict") {
             code << "    // Uniform block: " << u.name << " (type: " << u.type.name << ")\n";
             code << "    float4x4 model;\n";
@@ -965,7 +965,7 @@ String DXILTranspiler::MapOpToHLSL(int code, const String& a, const String& b) {
     }
 }
 
-String DXILTranspiler::EmitHLSL(PyLambda* pyLambda, const ShaderInterface& interface) {
+String DXILTranspiler::EmitHLSL(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader function\n";
     
     const Vector<PyIR>& ir = pyLambda->ir;
@@ -991,9 +991,9 @@ String DXILTranspiler::EmitHLSL(PyLambda* pyLambda, const ShaderInterface& inter
     for (int i = 0; i < pyLambda->arg.GetCount(); ++i) {
         String argName = pyLambda->arg[i];
         String typeName = "float";
-        for (auto& p : interface.inputs) {
+        for (auto& p : iface.inputs) {
             if (p.name == argName) { typeName = MapType(p.type); break; }
-            for (auto& p2 : interface.uniforms) {
+            for (auto& p2 : iface.uniforms) {
                 if (p2.name == argName) { typeName = MapType(p2.type); break; }
             }
         }
@@ -1111,45 +1111,45 @@ String DXILTranspiler::EmitHLSL(PyLambda* pyLambda, const ShaderInterface& inter
     return code;
 }
 
-String DXILTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& interface) {
+String DXILTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader\n";
     
     String code;
     code << "// HLSL / DXIL\n";
-    code << GenerateLayout(interface);
+    code << GenerateLayout(iface);
     code << "\n";
     
-    bool isVertex = interface.inputs.GetCount() > 0 && interface.outputs.GetCount() > 0;
+    bool isVertex = iface.inputs.GetCount() > 0 && iface.outputs.GetCount() > 0;
     
     if (isVertex) {
         code << "struct VS_INPUT {\n";
-        for (int i = 0; i < interface.inputs.GetCount(); ++i) {
-            auto& inp = interface.inputs[i];
+        for (int i = 0; i < iface.inputs.GetCount(); ++i) {
+            auto& inp = iface.inputs[i];
             code << "    " << MapType(inp.type) << " " << inp.name << " : TEXCOORD" << i << ";\n";
         }
         code << "};\n\n";
         
         code << "struct VS_OUTPUT {\n";
-        for (int i = 0; i < interface.outputs.GetCount(); ++i) {
-            auto& out = interface.outputs[i];
+        for (int i = 0; i < iface.outputs.GetCount(); ++i) {
+            auto& out = iface.outputs[i];
             code << "    " << MapType(out.type) << " " << out.name << " : TEXCOORD" << i << ";\n";
         }
         code << "    float4 SV_Position : SV_Position;\n";
         code << "};\n\n";
         
         code << "VS_OUTPUT main(VS_INPUT input) {\n";
-        code << EmitHLSL(pyLambda, interface);
+        code << EmitHLSL(pyLambda, iface);
         code << "}\n";
     } else {
         code << "struct PS_INPUT {\n";
-        for (int i = 0; i < interface.inputs.GetCount(); ++i) {
-            auto& inp = interface.inputs[i];
+        for (int i = 0; i < iface.inputs.GetCount(); ++i) {
+            auto& inp = iface.inputs[i];
             code << "    " << MapType(inp.type) << " " << inp.name << " : TEXCOORD" << i << ";\n";
         }
         code << "};\n\n";
         
         code << "float4 main(PS_INPUT input) : SV_Target {\n";
-        code << EmitHLSL(pyLambda, interface);
+        code << EmitHLSL(pyLambda, iface);
         code << "}\n";
     }
     
@@ -1177,11 +1177,11 @@ String OSLTranspiler::MapType(const TypeAnnotation& type) {
     return "void";
 }
 
-String OSLTranspiler::GenerateLayout(const ShaderInterface& interface) {
+String OSLTranspiler::GenerateLayout(const ShaderInterface& iface) {
     String code;
     code << "shader SurfaceShader(\n";
     bool first = true;
-    for (auto& u : interface.uniforms) {
+    for (auto& u : iface.uniforms) {
         if (u.type.name == "Uniforms" || u.type.name == "struct" || u.type.name == "TypedDict") {
             if (!first) code << ",\n";
             code << "    matrix model = matrix(1),\n";
@@ -1224,7 +1224,7 @@ String OSLTranspiler::MapOpToOSL(int code, const String& a, const String& b) {
     }
 }
 
-String OSLTranspiler::EmitOSL(PyLambda* pyLambda, const ShaderInterface& interface) {
+String OSLTranspiler::EmitOSL(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader function\n";
     
     const Vector<PyIR>& ir = pyLambda->ir;
@@ -1250,9 +1250,9 @@ String OSLTranspiler::EmitOSL(PyLambda* pyLambda, const ShaderInterface& interfa
     for (int i = 0; i < pyLambda->arg.GetCount(); ++i) {
         String argName = pyLambda->arg[i];
         String typeName = "float";
-        for (auto& p : interface.inputs) {
+        for (auto& p : iface.inputs) {
             if (p.name == argName) { typeName = MapType(p.type); break; }
-            for (auto& p2 : interface.uniforms) {
+            for (auto& p2 : iface.uniforms) {
                 if (p2.name == argName) { typeName = MapType(p2.type); break; }
             }
         }
@@ -1371,13 +1371,13 @@ String OSLTranspiler::EmitOSL(PyLambda* pyLambda, const ShaderInterface& interfa
     return code;
 }
 
-String OSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& interface) {
+String OSLTranspiler::Transpile(PyLambda* pyLambda, const ShaderInterface& iface) {
     if (!pyLambda) return "// No shader\n";
     
     String code;
     code << "// Open Shading Language\n";
-    code << GenerateLayout(interface);
-    code << EmitOSL(pyLambda, interface);
+    code << GenerateLayout(iface);
+    code << EmitOSL(pyLambda, iface);
     code << "}\n";  // Close shader
     return code;
 }

@@ -214,8 +214,8 @@ void DeviceCPU::WaitIdle() {
 					if (currentPipeline && currentPipeline->GetComputeDesc()) {
 						const ComputePipelineDesc* pipelineDesc = currentPipeline->GetComputeDesc();
 						if (pipelineDesc->shader) {
-							ShaderInterface interface;
-							cpuBackend.ExecuteComputeShader(pipelineDesc->shader, interface,
+							ShaderInterface iface;
+							cpuBackend.ExecuteComputeShader(pipelineDesc->shader, iface,
 								nullptr, recordedCmd.groupCountX, recordedCmd.groupCountY, recordedCmd.groupCountZ);
 						}
 					}

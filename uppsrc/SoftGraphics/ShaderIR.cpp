@@ -12,8 +12,8 @@ public:
 	~ShaderIRImpl() override = default;
 
 	ShaderInterface ExtractInterface() override {
-		ShaderInterface interface;
-		if (!pyLambda) return interface;
+		ShaderInterface iface;
+		if (!pyLambda) return iface;
 
 		// Extract type annotations from PyLambda.annotations. The map stores each
 		// parameter's declared type (and the key "return" for the return type).
@@ -29,20 +29,20 @@ public:
 
 			const String& tn = param.type.name;
 			if (name == "return")
-				interface.outputs.Add(std::move(param));
+				iface.outputs.Add(std::move(param));
 			else if (tn.StartsWith("Sampler"))
-				interface.textures.Add(std::move(param));
+				iface.textures.Add(std::move(param));
 			else if (tn == "StorageBuffer" || tn == "StorageImage")
-				interface.storageBuffers.Add(std::move(param));
+				iface.storageBuffers.Add(std::move(param));
 			else if (IsShaderPrimitive(tn))
-				interface.inputs.Add(std::move(param));
+				iface.inputs.Add(std::move(param));
 			else
 				// TypedDict/struct parameters and anything else are treated as a
 				// uniform block.
-				interface.uniforms.Add(std::move(param));
+				iface.uniforms.Add(std::move(param));
 		}
 
-		return interface;
+		return iface;
 	}
 
 	String TranspileToSPIRV() override { return "// SPIR-V transpilation not implemented"; }
@@ -51,18 +51,18 @@ public:
 	String TranspileToGLSL() override { return "// GLSL transpilation not implemented"; }
 	String TranspileToOSL() override { return "// OSL transpilation not implemented"; }
 
-	void ExecuteVertexShader(const ShaderInterface& interface, void* vertexData, void* outputVaryings) override {
+	void ExecuteVertexShader(const ShaderInterface& iface, void* vertexData, void* outputVaryings) override {
 		if (!pyLambda) return;
 		// Execute vertex shader entry point in PyVM
 		// This would call the compiled PyLambda with vertex data
 	}
 
-	void ExecuteFragmentShader(const ShaderInterface& interface, void* varyingData, void* outputColor) override {
+	void ExecuteFragmentShader(const ShaderInterface& iface, void* varyingData, void* outputColor) override {
 		if (!pyLambda) return;
 		// Execute fragment shader entry point in PyVM
 	}
 
-	void ExecuteComputeShader(const ShaderInterface& interface, void* workgroupData) override {
+	void ExecuteComputeShader(const ShaderInterface& iface, void* workgroupData) override {
 		if (!pyLambda) return;
 		// Execute compute shader entry point in PyVM
 	}

@@ -4,6 +4,10 @@
 #include <ByteVM/Python/Python.h>
 #include <Geometry/Geometry.h>
 
+#ifdef interface
+#undef interface
+#endif
+
 namespace SoftGraphics {
 
 using Upp::One;

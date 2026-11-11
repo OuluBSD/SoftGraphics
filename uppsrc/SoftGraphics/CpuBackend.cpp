@@ -298,7 +298,7 @@ bool CpuBackend::ExecuteFragmentShader(Shader* shader, const Vector<vec4>& varyi
 // Compute stage
 // ---------------------------------------------------------------------------
 
-void CpuBackend::ExecuteComputeShader(Shader* shader, const ShaderInterface& interface,
+void CpuBackend::ExecuteComputeShader(Shader* shader, const ShaderInterface& iface,
                                       void* workgroupData, int groupCountX, int groupCountY, int groupCountZ) {
 	ShaderCPU* shaderCPU = static_cast<ShaderCPU*>(shader);
 	if(!shaderCPU || !shaderCPU->GetPyLambda())
@@ -331,7 +331,7 @@ void CpuBackend::ExecuteComputeShader(Shader* shader, const ShaderInterface& int
 			}
 		}
 	}
-	(void)interface;
+	(void)iface;
 	(void)workgroupData;
 }
 

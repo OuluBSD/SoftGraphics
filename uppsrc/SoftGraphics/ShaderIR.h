@@ -76,9 +76,9 @@ public:
 	virtual String TranspileToOSL() = 0;
 
 	// CPU backend: execute in PyVM
-	virtual void ExecuteVertexShader(const ShaderInterface& interface, void* vertexData, void* outputVaryings) = 0;
-	virtual void ExecuteFragmentShader(const ShaderInterface& interface, void* varyingData, void* outputColor) = 0;
-	virtual void ExecuteComputeShader(const ShaderInterface& interface, void* workgroupData) = 0;
+	virtual void ExecuteVertexShader(const ShaderInterface& iface, void* vertexData, void* outputVaryings) = 0;
+	virtual void ExecuteFragmentShader(const ShaderInterface& iface, void* varyingData, void* outputColor) = 0;
+	virtual void ExecuteComputeShader(const ShaderInterface& iface, void* workgroupData) = 0;
 
 protected:
 	PyLambda* pyLambda = nullptr;

@@ -16,7 +16,7 @@ public:
 	virtual ~ShaderTranspiler() = default;
 
 	// Transpile typed PyLambda to target shader language
-	virtual String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) = 0;
+	virtual String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) = 0;
 
 	// Validate the transpiled code
 	virtual bool Validate(const String& code) = 0;
@@ -32,7 +32,7 @@ public:
 	virtual String MapType(const TypeAnnotation& type) = 0;
 
 	// Helper: generate uniform/descriptor layout
-	virtual String GenerateLayout(const ShaderInterface& interface) = 0;
+	virtual String GenerateLayout(const ShaderInterface& iface) = 0;
 
 protected:
 	// Walk PyIR and emit target code (overridden by each backend)
@@ -52,60 +52,60 @@ struct TempVar : Upp::Moveable<TempVar> {
 // Concrete transpilers
 class SPIRVTranspiler : public ShaderTranspiler {
 public:
-    String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) override;
+    String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) override;
     bool Validate(const String& code) override;
     String MapType(const TypeAnnotation& type) override;
-    String GenerateLayout(const ShaderInterface& interface) override;
+    String GenerateLayout(const ShaderInterface& iface) override;
 
 private:
-    String EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& interface);
+    String EmitSPIRV(PyLambda* pyLambda, const ShaderInterface& iface);
 };
 
 class MSLTranspiler : public ShaderTranspiler {
 public:
-    String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) override;
+    String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) override;
     bool Validate(const String& code) override;
     String MapType(const TypeAnnotation& type) override;
-    String GenerateLayout(const ShaderInterface& interface) override;
+    String GenerateLayout(const ShaderInterface& iface) override;
 
 private:
-    String EmitMSL(PyLambda* pyLambda, const ShaderInterface& interface);
+    String EmitMSL(PyLambda* pyLambda, const ShaderInterface& iface);
     String MapOpToMSL(int code, const String& a, const String& b);
 };
 
 class DXILTranspiler : public ShaderTranspiler {
 public:
-    String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) override;
+    String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) override;
     bool Validate(const String& code) override;
     String MapType(const TypeAnnotation& type) override;
-    String GenerateLayout(const ShaderInterface& interface) override;
+    String GenerateLayout(const ShaderInterface& iface) override;
 
 private:
-    String EmitHLSL(PyLambda* pyLambda, const ShaderInterface& interface);
+    String EmitHLSL(PyLambda* pyLambda, const ShaderInterface& iface);
     String MapOpToHLSL(int code, const String& a, const String& b);
 };
 
 class GLSLTranspiler : public ShaderTranspiler {
 public:
-	String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) override;
+	String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) override;
 	bool Validate(const String& code) override;
 	String MapType(const TypeAnnotation& type) override;
-	String GenerateLayout(const ShaderInterface& interface) override;
+	String GenerateLayout(const ShaderInterface& iface) override;
 	
 private:
-	String EmitGLSL(PyLambda* pyLambda, const ShaderInterface& interface);
+	String EmitGLSL(PyLambda* pyLambda, const ShaderInterface& iface);
 	String MapOpToGLSL(int code, const String& a, const String& b);
 };
 
 class OSLTranspiler : public ShaderTranspiler {
 public:
-    String Transpile(PyLambda* pyLambda, const ShaderInterface& interface) override;
+    String Transpile(PyLambda* pyLambda, const ShaderInterface& iface) override;
     bool Validate(const String& code) override;
     String MapType(const TypeAnnotation& type) override;
-    String GenerateLayout(const ShaderInterface& interface) override;
+    String GenerateLayout(const ShaderInterface& iface) override;
 
 private:
-    String EmitOSL(PyLambda* pyLambda, const ShaderInterface& interface);
+    String EmitOSL(PyLambda* pyLambda, const ShaderInterface& iface);
     String MapOpToOSL(int code, const String& a, const String& b);
 };
 

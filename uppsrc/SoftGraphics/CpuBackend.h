@@ -78,7 +78,7 @@ public:
 	                          Upp::vec4& outColor);
 
 	// Execute compute shader
-	void ExecuteComputeShader(Shader* shader, const ShaderInterface& interface,
+	void ExecuteComputeShader(Shader* shader, const ShaderInterface& iface,
 	                          void* workgroupData, int groupCountX, int groupCountY, int groupCountZ);
 
 	// Run a full graphics draw: vertex stage, triangle setup, rasterization,
